@@ -21,7 +21,41 @@ return {
       -- Loads lspconfigs' configuration for the languages listed and
       -- passes a table of configuration options
       require("lspconfig").lua_ls.setup { capabilities = capabilities }
-      require("lspconfig").gopls.setup { capabilities = capabilities }
+      require("lspconfig").gopls.setup {
+        capabilities = capabilities,
+        settings = {
+          gopls = {
+            staticcheck = true,
+          },
+        },
+      }
+      require("lspconfig").templ.setup({
+        cmd = { "templ", "lsp" },
+        filetypes = { "templ" },
+        root_dir = require("lspconfig.util").root_pattern("go.mod", ".git"),
+      })
+      vim.api.nvim_create_autocmd("BufWritePre", {
+        pattern = "*.go",
+        callback = function()
+          vim.cmd("silent !golangci-lint run %")
+        end
+      })
+
+      vim.api.nvim_create_autocmd("BufWritePre", {
+        pattern = "*.templ",
+        callback = function()
+          vim.lsp.buf.format({ async = false })
+        end
+      })
+
+      -- Enable inline diagnostics
+      vim.diagnostic.config({
+        virtual_text = true,      -- Show errors inline
+        signs = true,             -- Show signs in the number line
+        underline = true,         -- Underline errors
+        update_in_insert = false, -- Don't update diagnostics while typing
+        severity_sort = true,     -- Sort diagnostics by severity
+      })
 
       vim.api.nvim_create_autocmd('LspAttach', {
         callback = function(args)
